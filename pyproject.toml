@@ -1,0 +1,49 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "myfigurecollection-api"
+version = "0.1.0"
+description = "Unofficial MyFigureCollection.net API — Python library and local MCP server"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+authors = [{ name = "Sara Kay", email = "sara@sarakay.me" }]
+keywords = ["myfigurecollection", "mfc", "figures", "anime", "scraper", "mcp"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Internet :: WWW/HTTP :: Indexing/Search",
+]
+dependencies = [
+    "curl_cffi>=0.7",
+    "beautifulsoup4>=4.12",
+    "pydantic>=2.0",
+    "mcp>=1.2",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+# One entry point for both jobs: bare `mfc-api` starts the MCP server on stdio,
+# `mfc-api item 287` runs the CLI. Also named after the distribution, so
+# `uvx myfigurecollection-api` works without a --from once this is published.
+mfc-api = "mfc_api.cli:main"
+myfigurecollection-api = "mfc_api.cli:main"
+mfc-api-cli = "mfc_api.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/ssskay/myfigurecollection-api"
+Issues = "https://github.com/ssskay/myfigurecollection-api/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mfc_api"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+markers = ["live: hits myfigurecollection.net; deselected by default"]
