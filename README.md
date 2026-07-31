@@ -8,6 +8,46 @@ MFC has no working public API. Its own API club ([#349](https://myfigurecollecti
 has been promising "API v4 coming soon" for eight years. This package reads the
 public HTML instead, and turns it into typed models.
 
+## New here? The short version
+
+MyFigureCollection is the largest catalog of anime figures and merch on the
+internet, and for years there has been no good way for a program to read it.
+This project fixes that on your own computer. You install it once, and an AI
+assistant like Claude can then look things up on MFC for you: "how much is this
+figure at AmiAmi?" or "list every Chiikawa item releasing in October."
+
+```mermaid
+sequenceDiagram
+    participant You
+    participant Claude
+    participant api as mfc-api, on your computer
+    participant MFC as myfigurecollection.net
+    You->>Claude: How much is the Alice Carroll figure?
+    Claude->>api: get_partner_listings(287)
+    api->>MFC: fetch the item's Buy window
+    MFC-->>api: HTML
+    api-->>Claude: AmiAmi · Available · ¥11,980
+    Claude-->>You: AmiAmi has it in stock for ¥11,980
+```
+
+**What is MCP?** The Model Context Protocol is a standard plug for giving AI
+assistants new abilities. An MCP server is a small program on your machine that
+an assistant is allowed to call. This one gives your assistant 12 MFC abilities,
+from item search to barcode lookup. Adding it takes one snippet in a config
+file, shown in [Use it as an MCP server](#use-it-as-an-mcp-server).
+
+**Why not use MFC's official API?** There isn't one. The site's own API club
+has been waiting for it since 2018.
+
+**Why isn't this a website I can visit?** Cloudflare guards MFC and decides who
+gets in partly by IP reputation. It trusts connections from home computers and
+distrusts servers, so a hosted version would get blocked within days while a
+copy on your own machine keeps working. That constraint shaped the whole
+design.
+
+**Do I need to know Python?** Two terminal commands to install (below). After
+that your assistant does the driving.
+
 ## Why this exists (and why the obvious approach fails)
 
 MFC is behind Cloudflare, which blocks on **TLS fingerprint** — not user-agent.
@@ -23,6 +63,14 @@ everything.
 It is also why this ships as a *local* tool rather than a hosted service:
 Cloudflare weights IP reputation, so a scraper on datacenter IPs gets challenged
 and burns the shared address for everyone. Run it on your own machine.
+
+```mermaid
+flowchart LR
+    A["requests / httpx / aiohttp<br/>(any headers you like)"] -->|"403 Just a moment..."| CF{Cloudflare}
+    B["Your browser"] -->|200| CF
+    C["mfc-api via curl_cffi<br/>(Chrome TLS handshake)"] -->|200| CF
+    CF --> MFC[("myfigurecollection.net")]
+```
 
 ## Install
 
