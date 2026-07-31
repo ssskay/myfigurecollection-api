@@ -74,12 +74,15 @@ flowchart LR
 
 ## Install
 
-This needs **Python 3.10+**. On a Mac, `python3` is often Xcode's 3.9, which will not
-run this code, so be explicit:
+This needs **Python 3.10+**. The package is on PyPI:
 
 ```bash
-/usr/local/bin/pip3.12 install -e .
+pip install myfigurecollection-api
 ```
+
+On a Mac, `python3` is often Xcode's 3.9, which will not run this code, so be
+explicit about the interpreter (e.g. `pip3.12`). Working from a clone instead,
+use `pip3.12 install -e .`.
 
 Then check it landed:
 
@@ -101,16 +104,21 @@ use that absolute path.
 {
   "mcpServers": {
     "myfigurecollection": {
-      "command": "/Library/Frameworks/Python.framework/Versions/3.12/bin/mfc-api"
+      "command": "uvx",
+      "args": ["myfigurecollection-api"]
     }
   }
 }
 ```
 
-**Use the absolute path.** MCP clients launch servers with a minimal `PATH` that does
-not include your shell's Python bin directory — and on that `PATH`, `python3` is
-Xcode's 3.9, which cannot run this. A bare `"command": "mfc-api"` will fail even though
-it works in your terminal.
+This needs [`uv`](https://docs.astral.sh/uv/) installed; `uvx` fetches the package
+from PyPI on first run, so there is nothing else to set up.
+
+No `uv`? Point `command` at the installed script by its **absolute path**, e.g.
+`/Library/Frameworks/Python.framework/Versions/3.12/bin/mfc-api`. The path must be
+absolute because MCP clients launch servers with a minimal `PATH` that does not
+include your shell's Python bin directory — a bare `"command": "mfc-api"` will fail
+even though it works in your terminal.
 
 ### Tools
 
