@@ -1,0 +1,21 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.ssskay/myfigurecollection-api",
+  "description": "Read MyFigureCollection.net: search figures, JAN barcode lookup, shop prices, collections and clubs.",
+  "repository": {
+    "url": "https://github.com/ssskay/myfigurecollection-api",
+    "source": "github"
+  },
+  "version": "0.1.1",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "myfigurecollection-api",
+      "version": "0.1.1",
+      "runtimeHint": "uvx",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}
