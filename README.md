@@ -263,3 +263,5 @@ whenever MFC changes its HTML. Item data belongs to MFC and its contributors.
 MIT licensed — see [LICENSE](LICENSE).
 
 Built by [Sara Kay](https://sarakay.me).
+
+mcp-name: io.github.ssskay/myfigurecollection-api
