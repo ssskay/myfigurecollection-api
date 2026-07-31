@@ -254,6 +254,9 @@ One piece of tenji did survive verbatim: the Buy window is still a form POST to
 `/item/{id}` with `commit=loadWindow&window=buyItem`, answering with JSON. That
 envelope is tenji's discovery and it still works in 2026.
 
+tenji's MIT notice is reproduced in full in [NOTICE](NOTICE), along with a
+precise account of what was and wasn't derived from it.
+
 ## Disclaimer
 
 Unofficial. Not affiliated with, endorsed by, or supported by
