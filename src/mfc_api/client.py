@@ -5,8 +5,10 @@ from __future__ import annotations
 import logging
 
 from . import urls
+from .archive import Archiver
 from .cache import DiskCache
 from .models import (
+    ArchiveResult,
     BarcodeMatch,
     Club,
     ClubMembers,
@@ -59,7 +61,12 @@ class MFCClient:
         cache_ttl: float = 3600.0,
         cache_dir: str | None = None,
         transport: Transport | None = None,
+        archiver: Archiver | None = None,
     ) -> None:
+        # Built lazily, and only if something actually asks to archive. A
+        # client that never passes archive=True never constructs one, so it
+        # never reads credentials or touches the ledger file.
+        self._archiver = archiver
         self.transport = transport or Transport(
             impersonate=impersonate,
             rate_limit=rate_limit,
@@ -68,10 +75,57 @@ class MFCClient:
 
     # -- items ----------------------------------------------------------
 
-    def get_item(self, item_id: int) -> Item:
-        """A single figure/goods/media item by its MFC id."""
+    def get_item(self, item_id: int, *, archive: bool = False) -> Item:
+        """A single figure/goods/media item by its MFC id.
+
+        `archive=True` additionally files the public item page with the Wayback
+        Machine and attaches the result as `item.archive`, so a price read off
+        this page can be cited against an immutable third-party capture. It is
+        best-effort and never raises: if the Internet Archive is down you still
+        get the item, with `archive.status == "failed"`. It is also
+        weekly-cadenced and rate-limited — see :mod:`mfc_api.archive` — so it
+        belongs in a deliberate archiving pass, not a latency-sensitive loop.
+        """
         url = urls.item(item_id)
-        return ItemParser(self.transport.get(url), url=url).parse()
+        item = ItemParser(self.transport.get(url), url=url).parse()
+        if archive:
+            item = item.model_copy(update={"archive": self.snapshot(item.url)})
+        return item
+
+    def snapshot(self, url: str) -> ArchiveResult:
+        """File one public item page with the Wayback Machine. Never raises.
+
+        Exposed separately from `get_item(archive=True)` so a pass that already
+        holds URLs — from a search or a list, say — can archive without
+        re-reading each item.
+
+        The guard is a whitelist of `/item/<id>` pages: a profile, a collection
+        or any other page naming a person is refused rather than archived.
+        """
+        return self.archiver.snapshot(url)
+
+    def snapshot_item(self, item_id: int) -> ArchiveResult:
+        """File item `item_id`'s page with the Wayback Machine. Never raises.
+
+        Prefer this over `snapshot(item.url)` when you have an id, because not
+        every `Item` carries a canonical URL. An item reached through
+        :meth:`search_by_barcode` carries the *search* URL it was found at —
+        query string and all — which the archiver correctly refuses. Building
+        the URL from the id sidesteps that, and keeps URL construction in the
+        one module that owns it.
+        """
+        return self.snapshot(urls.item(item_id))
+
+    @property
+    def archiver(self) -> Archiver:
+        """The client's :class:`~mfc_api.archive.Archiver`, built on first use.
+
+        One per client, so the per-run cap and the courtesy delay apply across a
+        whole pass rather than resetting on every item.
+        """
+        if self._archiver is None:
+            self._archiver = Archiver()
+        return self._archiver
 
     def search_items(
         self,
@@ -217,6 +271,8 @@ class MFCClient:
 
     def close(self) -> None:
         self.transport.close()
+        if self._archiver is not None:
+            self._archiver.close()
 
     def __enter__(self) -> "MFCClient":
         return self

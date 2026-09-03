@@ -216,11 +216,80 @@ mfc-api collection Climbatize --status owned --page 2
 Everything prints JSON on stdout; logs go to stderr. `mfc-api --help` lists every
 subcommand. `mfc-api-cli` is kept as an alias.
 
+## Archiving an item page to the Wayback Machine
+
+A price or a listing you read today is uncitable tomorrow: the page will have
+moved on, and nobody has to take your word for what it said. `archive=True`
+files the **public item page** with the Internet Archive's Save Page Now and
+attaches the result to the item.
+
+```python
+with MFCClient() as mfc:
+    item = mfc.get_item(287, archive=True)
+    print(item.releases[0].price, item.archive.wayback_url)
+    # 6980.0 https://web.archive.org/web/20260903081500/https://myfigurecollection.net/item/287
+```
+
+Three things fall out of one hook: a price-history series accumulates as a
+byproduct of ordinary reads, every row becomes auditable by someone who does not
+trust you, and the data survives the site. That last one is not hypothetical —
+`tenji` died, and Mandarake went dark in September 2026.
+
+**It never breaks a read.** A failure is a row, not an exception:
+`item.archive.status` is one of `success`, `already` (a recent capture existed,
+so the Archive declined to make another — still a preservation success),
+`skipped`, `pending`, or `failed` with a `reason`. If the Internet Archive is
+down you still get the item.
+
+### Nothing about a person is ever archived
+
+Most of MFC is people. `is_public_item_url` is a **whitelist** of `/item/<id>`
+with no query string, so profiles, collections, user lists and club rosters are
+refused before any request is made:
+
+```python
+mfc.snapshot("https://myfigurecollection.net/item/287")       # captured
+mfc.snapshot("https://myfigurecollection.net/profile/someone")  # skipped, never sent
+```
+
+A whitelist rather than a blacklist on purpose: a new personal URL shape cannot
+leak through something that only lists what to keep.
+
+### It is opt-in for a reason
+
+Reads default to `archive=False`, and archiving is meant to run as its own
+deliberate pass over the items you actually care about — not inline in a
+latency-sensitive loop:
+
+- **Weekly cadence.** A JSON ledger records when each URL was last captured;
+  anything captured in the last 7 days is skipped without a request. Weekly is
+  plenty of resolution for a price curve and much gentler on both the Archive
+  and MFC. The submit also carries `if_not_archived_within=7d`, so the Archive
+  enforces the same window even if the ledger is lost.
+- **Serialized, one every 6 seconds**, with a per-run cap of 50, and
+  `Retry-After` honoured on a 429.
+
+| Setting | What it does |
+|---|---|
+| `MERCH_ARCHIVE=0` | Kill switch — disables every snapshot in the process. Shared with the sibling merch clients, so one variable turns archiving off across a bulk run. |
+| `MERCH_ARCHIVE_LEDGER` | Ledger path, shared across sibling clients so one pass keeps one honest cadence per URL. |
+| `MFC_ARCHIVE_LEDGER` | Ledger path for this package only. Default: `<cache dir>/archive-ledger.json`. |
+| `IA_ACCESS_KEY` / `IA_SECRET_KEY` | Internet Archive S3 keys. Free, from [archive.org/account/s3.php](https://archive.org/account/s3.php). On macOS they are also read from the Keychain services `ia-s3-access` / `ia-s3-secret`. |
+
+Without credentials the result is `status="failed"` with a reason naming the
+fix — not a crash, and not a silent no-op.
+
+Build one `Archiver` per pass and reuse it (the client does this for you), so
+the rate limiter and the per-run cap apply across the whole batch rather than
+resetting each time.
+
 ## Being a good citizen
 
 - Rate-limited to **1 request/second** by default, process-wide.
 - Responses are cached on disk for an hour, so repeated agent calls cost nothing.
 - Read-only. There are no login, write, or vote operations, and none are planned.
+- Wayback snapshots are opt-in, weekly per URL, capped per run, and restricted
+  to `/item/<id>` pages — never a profile, collection, list or club page.
 
 If you scrape MFC hard enough to be noticed, Cloudflare will start challenging
 your IP, and you will have made the site worse for everyone. Don't.

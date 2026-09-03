@@ -93,6 +93,51 @@ def barcode_no_match_html() -> str:
     return load("barcode_no_match.html")
 
 
+@pytest.fixture(scope="session")
+def spn2_submit_job_json() -> str:
+    """`POST /save/` accepted the capture and handed back a job to poll."""
+    return load("spn2_submit_job.json")
+
+
+@pytest.fixture(scope="session")
+def spn2_submit_dedup_json() -> str:
+    """`POST /save/` declined: a capture already exists inside the window.
+
+    Note there is no `job_id` and no `status` field — the whole signal is the
+    wording of `message`, which is why the parser matches on it.
+    """
+    return load("spn2_submit_dedup.json")
+
+
+@pytest.fixture(scope="session")
+def spn2_submit_error_json() -> str:
+    """`POST /save/` refused outright — a candidate-dead target."""
+    return load("spn2_submit_error.json")
+
+
+@pytest.fixture(scope="session")
+def spn2_status_pending_json() -> str:
+    return load("spn2_status_pending.json")
+
+
+@pytest.fixture(scope="session")
+def spn2_status_success_json() -> str:
+    """A finished capture. `timestamp` is what builds the citable URL."""
+    return load("spn2_status_success.json")
+
+
+@pytest.fixture(scope="session")
+def spn2_status_error_json() -> str:
+    """A capture that failed on the Archive's side, transiently."""
+    return load("spn2_status_error.json")
+
+
+@pytest.fixture(scope="session")
+def wayback_available_json() -> str:
+    """`archive.org/wayback/available` — how a dedup answer gets a URL."""
+    return load("wayback_available.json")
+
+
 def pytest_collection_modifyitems(config, items):
     if config.getoption("-m"):
         return

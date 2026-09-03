@@ -1,0 +1,6 @@
+{
+  "url": "https://myfigurecollection.net/item/999999999",
+  "status": "error",
+  "status_ext": "error:not-found",
+  "message": "Couldn't resolve the host or the page returned 404."
+}

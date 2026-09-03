@@ -6,6 +6,7 @@ parses them into Pydantic models, and exposes the result both as a library and
 as a local MCP server.
 """
 
+from .archive import Archiver, ArchiveLedger, is_public_item_url, snapshot
 from .cache import DiskCache
 from .client import MFCClient
 from .exceptions import (
@@ -16,6 +17,7 @@ from .exceptions import (
     MFCTransportError,
 )
 from .models import (
+    ArchiveResult,
     BarcodeMatch,
     Club,
     ClubComment,
@@ -51,6 +53,11 @@ __version__ = "0.1.0"
 __all__ = [
     "__version__",
     "MFCClient",
+    "Archiver",
+    "ArchiveLedger",
+    "ArchiveResult",
+    "is_public_item_url",
+    "snapshot",
     "Transport",
     "DiskCache",
     "MFCError",

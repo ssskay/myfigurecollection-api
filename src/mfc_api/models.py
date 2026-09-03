@@ -41,6 +41,56 @@ class CollectionStatus(IntEnum):
     FAVORITES = 3
 
 
+class ArchiveResult(BaseModel):
+    """What came back from a Save Page Now attempt.
+
+    Present on an :class:`Item` only when it was read with ``archive=True``.
+    Never an exception: a page that could not be captured is a row with
+    ``status="failed"`` and a ``reason``, so a read still succeeds when the
+    Internet Archive is down.
+
+    ``status``
+        ``success``  a new capture completed; ``wayback_url`` is set.
+        ``already``  a capture inside the cadence window already existed, so
+                     the Archive declined to make another. A preservation
+                     success, not a failure; ``wayback_url`` is set.
+        ``skipped``  not attempted — the kill switch, the weekly ledger, the
+                     per-run cap, or the public-URL guard. ``wayback_url`` may
+                     still be set, from the ledger.
+        ``pending``  submitted and still capturing when we stopped waiting.
+                     ``job_id`` is set; no ``wayback_url`` yet.
+        ``failed``   the attempt failed. ``reason`` says how.
+    """
+
+    status: str = Field(description="success | already | skipped | pending | failed")
+    source_url: str | None = Field(default=None, description="What was asked for")
+    wayback_url: str | None = Field(
+        default=None, description="The immutable web.archive.org capture, when there is one"
+    )
+    timestamp: str | None = Field(
+        default=None, description="The Archive's own capture stamp, YYYYMMDDhhmmss"
+    )
+    archived_at: str | None = Field(
+        default=None, description="When this result was produced, ISO-8601 UTC"
+    )
+    job_id: str | None = Field(default=None, description="SPN2 job id, for a pending capture")
+    reason: str | None = Field(default=None, description="Why it was skipped or failed")
+    error_kind: str | None = Field(
+        default=None,
+        description=(
+            "For a failure: 'transient' (the Archive is busy — says nothing "
+            "about the page), 'blocked' (the site's WAF refused the Archive's "
+            "crawler — retrying will not help), 'dead' (the page itself "
+            "answered badly), or 'unknown'."
+        ),
+    )
+
+    @property
+    def ok(self) -> bool:
+        """True when a capture exists to cite, however it got there."""
+        return self.wayback_url is not None
+
+
 class Pagination(BaseModel):
     current_page: int = 1
     total_pages: int = 1
@@ -110,6 +160,14 @@ class Item(BaseModel):
     extra: dict[str, str] = Field(
         default_factory=dict,
         description="Any data field we do not model explicitly, as label -> text",
+    )
+    archive: ArchiveResult | None = Field(
+        default=None,
+        description=(
+            "Set only when the item was read with `archive=True`. Carries the "
+            "web.archive.org capture of the public item page, which is what "
+            "makes a price row citable."
+        ),
     )
 
 
