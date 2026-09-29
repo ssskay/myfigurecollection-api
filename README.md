@@ -1,5 +1,8 @@
 # myfigurecollection-api
 
+<!-- sarakay.me/downloads -->
+**Install:** `pip install myfigurecollection-api` · [all formats & checksums](https://sarakay.me/downloads.html#myfigurecollection-api)
+
 An unofficial [MyFigureCollection.net](https://myfigurecollection.net) API: a Python
 library plus a local **MCP server**, so agents can read figure data, collections,
 lists and clubs.
