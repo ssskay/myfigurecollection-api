@@ -18,7 +18,12 @@ from curl_cffi import requests
 from curl_cffi.requests.exceptions import RequestException
 
 from .cache import DiskCache
-from .exceptions import MFCBlockedError, MFCNotFoundError, MFCTransportError
+from .exceptions import (
+    MFCBlockedError,
+    MFCNotFoundError,
+    MFCRateLimitedError,
+    MFCTransportError,
+)
 
 log = logging.getLogger(__name__)
 
@@ -113,7 +118,17 @@ class Transport:
         fields = "&".join(f"{k}={v}" for k, v in sorted(data.items()))
         return f"POST {url} {fields}"
 
-    def _fetch(self, url: str, *, data: dict[str, str] | None = None) -> str:
+    def get_bytes(self, url: str) -> bytes:
+        """Fetch a binary asset (an item picture) from MFC's static host.
+
+        Same session, same process-wide rate limiter and the same Cloudflare /
+        429 handling as pages, so a crawl that mixes pages and pictures still
+        never exceeds one request per `rate_limit` seconds. Not cached: the
+        caller is expected to write the bytes to disk and not ask again.
+        """
+        return self._fetch(url, binary=True)
+
+    def _fetch(self, url: str, *, data: dict[str, str] | None = None, binary: bool = False):
         last_error: Exception | None = None
         method = "POST" if data is not None else "GET"
 
@@ -129,7 +144,19 @@ class Transport:
                 last_error = MFCTransportError(f"request to {url} failed: {exc}")
                 continue
 
-            body = response.text
+            headers = getattr(response, "headers", None) or {}
+            is_html = "html" in (headers.get("content-type") or "").lower()
+            body = response.text if (not binary or is_html) else ""
+
+            if response.status_code == 429:
+                raw = headers.get("retry-after")
+                try:
+                    retry_after = float(raw) if raw is not None else None
+                except ValueError:
+                    retry_after = None
+                raise MFCRateLimitedError(
+                    f"{url} returned HTTP 429 (Retry-After: {raw})", retry_after=retry_after
+                )
 
             if response.status_code == 404:
                 # MFC also serves a styled 404 body; the parser catches that case.
@@ -152,6 +179,10 @@ class Transport:
             if self._is_challenge(body):
                 raise MFCBlockedError(f"Cloudflare challenge page served for {url}")
 
+            if binary:
+                if is_html:
+                    raise MFCTransportError(f"{url} answered with HTML, not a binary asset")
+                return response.content
             return body
 
         raise last_error or MFCTransportError(f"could not fetch {url}")

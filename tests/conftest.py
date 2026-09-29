@@ -64,6 +64,12 @@ def search_html() -> str:
 
 
 @pytest.fixture(scope="session")
+def entry_items_html() -> str:
+    """Origin 237138 (Chiikawa), oldest-first, page 2 of 145. Captured 2026-09-19."""
+    return load("entry_items_237138_page2.html")
+
+
+@pytest.fixture(scope="session")
 def partner_listings_json() -> str:
     """The Buy window for item 287, which has a JAN — so it has real prices."""
     return load("partner_listings_287.json")

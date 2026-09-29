@@ -137,3 +137,9 @@ def test_save_page_now_still_accepts_an_mfc_item_page():
         assert result.wayback_url.split("://", 1)[-1].startswith("web.archive.org/web/"), (
             f"captured, but the archive URL is not on web.archive.org: {result.wayback_url}"
         )
+
+
+def test_entry_browse_still_lists_an_origin(client):
+    page = client.get_entry_items(237138)  # Chiikawa
+    assert len(page.items) == 50, "entry browse markup changed"
+    assert page.pagination.total_items and page.pagination.total_items > 7000

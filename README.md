@@ -182,6 +182,20 @@ with MFCClient() as mfc:
         print(page.pagination.current_page, len(page.items))
 ```
 
+Everything under one origin or character (library and CLI only — not an MCP tool):
+
+```python
+with MFCClient() as mfc:
+    page = mfc.get_entry_items(237138)          # Chiikawa, oldest first, 50 per page
+    print(page.pagination.total_items)          # 7247
+    item = mfc.get_item(page.items[0].id)
+    print(item.picture_large)                   # full-size upload/items/2/ picture
+```
+
+`Item.picture` is a 256px preview; `Item.picture_large` is the original upload.
+`transport.get_bytes(url)` fetches a picture through the same rate limiter, and
+a 429 raises `MFCRateLimitedError` carrying `retry_after` instead of being retried.
+
 Barcode in, prices out:
 
 ```python

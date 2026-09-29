@@ -136,7 +136,21 @@ class Item(BaseModel):
     id: int
     name: str
     url: str
-    picture: str | None = None
+    picture: str | None = Field(
+        default=None, description="The on-page preview, upload/items/1/ — longest side 256px"
+    )
+    picture_large: str | None = Field(
+        default=None,
+        description=(
+            "The full-size main picture, upload/items/2/ (e.g. 600x600, 500x750), "
+            "read from the page's gallery data. Verified 2026-09-19: /0/ is a "
+            "~64px thumbnail, /1/ a 256px preview, /2/ the original upload."
+        ),
+    )
+    gallery: list[str] = Field(
+        default_factory=list,
+        description="Further official-gallery picture URLs from the same gallery data",
+    )
     thumbnail: str | None = None
     category: ItemCategory | None = None
     category_name: str | None = None
@@ -249,6 +263,14 @@ class ItemList(BaseModel):
 
 class SearchResults(BaseModel):
     query: str
+    items: list[ItemSummary] = []
+    pagination: Pagination = Pagination()
+
+
+class EntryItems(BaseModel):
+    """One page of the items linked to an entry (origin, character, company…)."""
+
+    entry_id: int
     items: list[ItemSummary] = []
     pagination: Pagination = Pagination()
 

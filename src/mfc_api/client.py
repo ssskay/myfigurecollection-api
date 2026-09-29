@@ -14,6 +14,7 @@ from .models import (
     ClubMembers,
     Collection,
     CollectionStatus,
+    EntryItems,
     Item,
     ItemList,
     PartnerListings,
@@ -141,6 +142,28 @@ class MFCClient:
             query, page=page, category_id=category_id, sort=sort, order=order
         )
         return SearchParser(self.transport.get(url), query=query, url=url).parse()
+
+    def get_entry_items(
+        self,
+        entry_id: int,
+        page: int = 1,
+        *,
+        root_id: int | None = None,
+        sort: str = "insert",
+        order: str = "asc",
+    ) -> EntryItems:
+        """One page (50 items) of everything linked to an entry.
+
+        `entry_id` is the id of an origin, character, company or artist — the
+        same ids `Item.origins` / `Item.characters` carry. This is how to list
+        a whole franchise; title search only matches names. Summaries only:
+        characters and the full-size picture need `get_item` per id.
+        """
+        url = urls.entry_items(entry_id, page=page, root_id=root_id, sort=sort, order=order)
+        parser = SearchParser(self.transport.get(url), query=f"entry:{entry_id}", url=url)
+        return EntryItems(
+            entry_id=entry_id, items=parser.item_summaries(), pagination=parser.pagination()
+        )
 
     def search_by_barcode(self, barcode: str) -> BarcodeMatch:
         """Look an item up by its JAN/UPC.

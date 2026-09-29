@@ -89,6 +89,38 @@ def search_items(
     )
 
 
+def entry_items(
+    entry_id: int,
+    page: int = 1,
+    root_id: int | None = None,
+    sort: str = "insert",
+    order: str = "asc",
+) -> str:
+    """Every item linked to one entry (an origin, character, company…).
+
+    Title search cannot do this: it matches names, not links. The entry page
+    itself (``/entry/{id}``) only shows a partial icon grid, but its "browse"
+    links point at the item browser with ``orEntries[]={id}``, and adding
+    ``output=0`` gives the same 50-per-page digest rows as search, with a
+    total. Verified live 2026-09-19 against origin 237138 (Chiikawa): 7,247
+    items, 145 pages; ``rootId=0`` narrows to figures (739).
+
+    ``root_id``: 0 figures, 1 goods, 2 media, None for everything. The default
+    sort is oldest-insert-first so page numbers stay stable while a crawl is
+    in progress — new items land on the last page instead of shifting page 1.
+    """
+    return _query(
+        "/",
+        _tb="item",
+        **{"orEntries[]": entry_id},
+        rootId=root_id,
+        output=0,
+        sort=sort,
+        order=order,
+        page=page,
+    )
+
+
 def lists_containing_item(item_id: int, page: int = 1) -> str:
     return _query("/", _tb="list", itemId=item_id, page=page)
 

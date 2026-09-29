@@ -272,3 +272,47 @@ def test_iter_collection_stops_at_max_pages(tmp_path, collection_html):
     assert [
         transport.cache.get(url) is not None for url in transport._session.requested
     ] == [True, True]
+
+
+# -- binary assets and 429 (added 2026-09-19 for figure-id) ---------------
+
+
+class FakeBinaryResponse(FakeResponse):
+    def __init__(self, status_code, content=b"", text="", headers=None):
+        super().__init__(status_code, text)
+        self.content = content
+        self.headers = headers or {}
+
+
+def test_get_bytes_returns_content_and_is_not_cached(tmp_path):
+    jpeg = b"\xff\xd8\xff\xe0fake"
+    transport = make_transport(
+        tmp_path,
+        FakeBinaryResponse(200, jpeg, headers={"content-type": "image/jpeg"}),
+        FakeBinaryResponse(200, jpeg, headers={"content-type": "image/jpeg"}),
+    )
+    url = "https://static.myfigurecollection.net/upload/items/1/287-5585f.jpg"
+    assert transport.get_bytes(url) == jpeg
+    transport.get_bytes(url)
+    assert len(transport._session.requested) == 2
+
+
+def test_get_bytes_recognises_a_challenge(tmp_path):
+    transport = make_transport(
+        tmp_path,
+        FakeBinaryResponse(403, text=CHALLENGE, headers={"content-type": "text/html"}),
+    )
+    with pytest.raises(MFCBlockedError):
+        transport.get_bytes("https://static.myfigurecollection.net/x.jpg")
+
+
+def test_429_carries_retry_after_and_is_not_retried(tmp_path):
+    from mfc_api.exceptions import MFCRateLimitedError
+
+    transport = make_transport(
+        tmp_path, FakeBinaryResponse(429, text="slow down", headers={"retry-after": "30"})
+    )
+    with pytest.raises(MFCRateLimitedError) as err:
+        transport.get("https://myfigurecollection.net/item/287")
+    assert err.value.retry_after == 30.0
+    assert len(transport._session.requested) == 1

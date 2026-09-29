@@ -208,6 +208,27 @@ fine — it already has the Framework bin directory ahead of `/usr/bin`.
 `mfc-api` is now one entry point for both jobs: bare `mfc-api` starts the MCP server on
 stdio, `mfc-api item 287` runs the CLI. That matches what anyone would type.
 
+## Listing every item under an origin (2026-09-19)
+
+Title search matches names, not links, so it cannot enumerate a franchise
+("Chiikawa" by title: 984; by origin link: 7,247). Checked live through the lib:
+
+- `/entry/{id}` is **not** a listing: it renders a partial `span.item-icon` grid
+  (65 icons for entry 508519) with no count and no pagination.
+- Its own "browse" links go to the item browser: `/?_tb=item&orEntries[]={id}&rootId=N`.
+  Adding `output=0` gives the same `div.dgst.item-dgst` rows + `div.results-count`
+  as search, so the existing `item_summaries()` / `pagination()` parse it unchanged.
+- Origin 237138 (Chiikawa): 7,247 items / 145 pages; `rootId=0` (figures) 739.
+  `sort=insert&order=asc` is honoured, which keeps page numbers stable for a
+  resumable crawl.
+- The Chiikawa movie is a **separate origin** (508519, "Eiga Chiikawa Ningyo no
+  Shima no Himitsu"); its items do not carry 237138.
+- Pictures: `upload/items/0/` is the thumbnail, `/1/` is `Item.picture`. See
+  figure-id/README for the size check.
+
+Shipped as `urls.entry_items` + `MFCClient.get_entry_items(entry_id, page)` +
+`mfc-api entry-items`. Fixture: `tests/fixtures/entry_items_237138_page2.html`.
+
 ## Verification log
 
 - 2026-07-30: plain curl → 403 challenge (5.6KB "Just a moment..." page)

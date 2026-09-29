@@ -79,3 +79,13 @@ def test_missing_item_raises_not_found(item_404_html):
     # MFC serves a styled 404 body, so the parser has to notice it.
     with pytest.raises(MFCNotFoundError):
         ItemParser(item_404_html, url="https://myfigurecollection.net/item/999999999")
+
+
+def test_full_size_picture_and_gallery(item_html):
+    from mfc_api.parsers import ItemParser
+
+    item = ItemParser(item_html).parse()
+    assert item.picture.endswith("/upload/items/1/287-5585f.jpg")
+    assert item.picture_large == "https://static.myfigurecollection.net/upload/items/2/287-5585f.jpg"
+    assert len(item.gallery) == 6
+    assert all("/upload/pictures/" in url for url in item.gallery)

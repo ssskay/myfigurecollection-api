@@ -43,6 +43,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("query")
     p.add_argument("--page", type=int, default=1)
 
+    p = sub.add_parser("entry-items", help="every item linked to an origin/character entry")
+    p.add_argument("entry_id", type=int)
+    p.add_argument("--page", type=int, default=1)
+    p.add_argument("--root", type=int, default=None, help="0 figures, 1 goods, 2 media")
+
     p = sub.add_parser("barcode", help="look an item up by JAN/UPC")
     p.add_argument("barcode")
 
@@ -115,6 +120,9 @@ def main(argv: list[str] | None = None) -> int:
         result = {
             "item": lambda: client.get_item(args.item_id),
             "search": lambda: client.search_items(args.query, page=args.page),
+            "entry-items": lambda: client.get_entry_items(
+                args.entry_id, args.page, root_id=args.root
+            ),
             "barcode": lambda: client.search_by_barcode(args.barcode),
             "listings": lambda: client.get_partner_listings(args.item_id),
             "shop": lambda: client.get_shop(args.shop_id),

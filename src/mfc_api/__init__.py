@@ -14,6 +14,7 @@ from .exceptions import (
     MFCError,
     MFCNotFoundError,
     MFCParseError,
+    MFCRateLimitedError,
     MFCTransportError,
 )
 from .models import (
@@ -39,6 +40,7 @@ from .models import (
     PartnerListings,
     Profile,
     Release,
+    EntryItems,
     SearchResults,
     Shop,
     ShopSearchResults,
@@ -48,7 +50,7 @@ from .models import (
 )
 from .transport import Transport
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 __all__ = [
     "__version__",
@@ -64,6 +66,7 @@ __all__ = [
     "MFCBlockedError",
     "MFCNotFoundError",
     "MFCParseError",
+    "MFCRateLimitedError",
     "MFCTransportError",
     "BarcodeMatch",
     "Club",
@@ -86,6 +89,7 @@ __all__ = [
     "PartnerListings",
     "Profile",
     "Release",
+    "EntryItems",
     "SearchResults",
     "Shop",
     "ShopSearchResults",

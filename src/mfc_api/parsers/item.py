@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import json
 import re
+from urllib.parse import unquote
 
 from bs4 import Tag
 
@@ -79,6 +81,8 @@ class ItemParser(Parser):
             category_name=category_name,
         )
 
+        item.picture_large, item.gallery = self._gallery()
+
         for label, value in fields.items():
             if label in _ENTRY_FIELDS:
                 getattr(item, _ENTRY_FIELDS[label]).extend(self._entries(value))
@@ -109,6 +113,22 @@ class ItemParser(Parser):
         return item
 
     # -- field parsers ---------------------------------------------------
+
+    def _gallery(self) -> tuple[str | None, list[str]]:
+        """The PhotoSwipe data beside the main picture: a URL-encoded JSON list
+        of ``{src, w, h}``. Entry 0 is the main picture at full size
+        (``upload/items/2/``); the rest are official-gallery pictures."""
+        raw = self.attr("div.item-picture meta[content]", "content")
+        if not raw:
+            return None, []
+        try:
+            entries = json.loads(unquote(raw))
+            sources = [e["src"] for e in entries if isinstance(e, dict) and e.get("src")]
+        except (ValueError, TypeError):
+            return None, []
+        if sources and "/upload/items/" in sources[0]:
+            return sources[0], sources[1:]
+        return None, sources
 
     def _entries(self, value: Tag) -> list[Entry]:
         entries: list[Entry] = []

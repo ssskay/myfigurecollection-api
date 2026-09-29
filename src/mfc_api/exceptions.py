@@ -22,6 +22,18 @@ class MFCTransportError(MFCError):
     """The request failed at the network level, or returned an unexpected status."""
 
 
+class MFCRateLimitedError(MFCTransportError):
+    """HTTP 429. `retry_after` is the server's Retry-After in seconds, if it sent one.
+
+    Never retried inside the transport: the caller decides whether to wait that
+    long or end the run.
+    """
+
+    def __init__(self, message: str, retry_after: float | None = None) -> None:
+        super().__init__(message)
+        self.retry_after = retry_after
+
+
 class MFCParseError(MFCError):
     """The page loaded but did not look like the markup we know how to read.
 
